@@ -17,14 +17,16 @@ from voice_of_the_doctor import text_to_speech_with_elevenlabs
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Doctor system prompt (base in English)
-base_prompt = """You have to act as a professional doctor, i know you are not but this is for learning purpose. 
+# Doctor system prompts (base in English)
+base_prompt_with_image = """You have to act as a professional doctor, i know you are not but this is for learning purpose. 
 What's in this image?. Do you find anything wrong with it medically? 
 If you make a differential, suggest some remedies for them. Donot add any numbers or special characters in 
 your response. Your response should be in one long paragraph. Also always answer as if you are answering to a real person.
 Donot say 'In the image I see' but say 'With what I see, I think you have ....'
 Dont respond as an AI model in markdown, your answer should mimic that of an actual doctor not an AI bot, 
 Keep your answer concise (max 2 sentences). No preamble, start your answer right away please"""
+
+base_prompt_voice_only = """You have to act as a professional doctor (for learning purposes). The patient only described their symptoms via speech; no medical image is available. Listen to what they said (transcript is provided) and infer the most likely causes plus concrete suggestions (home care, medications to discuss with a doctor, red-flag symptoms). Avoid bullet points, keep it to one paragraph in natural language, maximum two sentences, and sound like an actual doctor speaking to a patient."""
 
 
 def process_inputs(audio_input, image_filepath, progress=gr.Progress()):
@@ -81,33 +83,50 @@ def process_inputs(audio_input, image_filepath, progress=gr.Progress()):
         # -------------------------------
         # Step 2: Translate base prompt
         # -------------------------------
+        prompt_to_translate = base_prompt_with_image if image_filepath else base_prompt_voice_only
         progress(0.4, desc=f"🌍 Preparing doctor instructions in {detected_lang}...")
         try:
-            translated_prompt = GoogleTranslator(source="auto", target=detected_lang).translate(base_prompt)
+            translated_prompt = GoogleTranslator(source="auto", target=detected_lang).translate(prompt_to_translate)
         except Exception as e:
             logging.error(f"Translation failed, using English prompt: {e}")
-            translated_prompt = base_prompt
+            translated_prompt = prompt_to_translate
 
         # -------------------------------
         # Step 3: Doctor reasoning
         # -------------------------------
         progress(0.6, desc="🤔 Doctor is analyzing...")
-        if image_filepath:
-            query_text = f"{translated_prompt}\n\n"
-            if speech_to_text_output:
-                query_text += f"The patient spoke in {detected_lang}. Patient said: {speech_to_text_output}"
-            else:
-                query_text += "No speech provided, please analyze only the image."
+        query_text = f"{translated_prompt}\n\n"
 
+        if speech_to_text_output:
+            query_text += f"The patient spoke in {detected_lang}. Patient said: {speech_to_text_output}.\n"
+        else:
+            query_text += "No speech was provided.\n"
+
+        encoded_image = None
+        if image_filepath:
+            encoded_image = encode_image(image_filepath)
+            query_text += "A medical image is attached. Use it for your assessment."
+        else:
+            query_text += "No medical image is available. Offer guidance based solely on the patient's description."
+
+        if image_filepath or speech_to_text_output:
             doctor_response = analyze_image_with_query(
                 query=query_text,
-                encoded_image=encode_image(image_filepath),
-                model="meta-llama/llama-4-scout-17b-16e-instruct"
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                encoded_image=encoded_image
             )
-        elif speech_to_text_output:
-            doctor_response = f"I heard you say: {speech_to_text_output}. But no image was provided for analysis."
         else:
             doctor_response = "⚠️ No input provided (neither speech nor image)."
+
+        # -------------------------------
+        # Step 3.5: Match doctor reply language to patient
+        # -------------------------------
+        should_translate_reply = bool(speech_to_text_output) and detected_lang not in (None, "", "error")
+        if doctor_response and should_translate_reply:
+            try:
+                doctor_response = GoogleTranslator(source="auto", target=detected_lang).translate(doctor_response)
+            except Exception as e:
+                logging.error(f"Doctor response translation failed, using original text: {e}")
 
         # -------------------------------
         # Step 4: TTS (Doctor Reply)

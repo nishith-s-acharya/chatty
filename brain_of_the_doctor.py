@@ -26,25 +26,33 @@ model="meta-llama/llama-4-scout-17b-16e-instruct"
 #model = "meta-llama/llama-4-scout-17b-16e-instruct"
 #model="llama-3.2-90b-vision-preview" #Deprecated
 
-def analyze_image_with_query(query, model, encoded_image):
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))  
-    messages=[
+def analyze_image_with_query(query, model, encoded_image=None):
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+    content = [
+        {
+            "type": "text",
+            "text": query
+        }
+    ]
+
+    if encoded_image:
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{encoded_image}",
+                },
+            }
+        )
+
+    messages = [
         {
             "role": "user",
-            "content": [
-                {
-                    "type": "text", 
-                    "text": query
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{encoded_image}",
-                    },
-                },
-            ],
-        }]
-    chat_completion=client.chat.completions.create(
+            "content": content,
+        }
+    ]
+    chat_completion = client.chat.completions.create(
         messages=messages,
         model=model
     )
