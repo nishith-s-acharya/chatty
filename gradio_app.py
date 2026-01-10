@@ -181,4 +181,4 @@ if os.environ.get("RAILWAY_ENVIRONMENT"):  # 🚀 Railway deployment
     # ✅ Directly expose ASGI app
     app = iface.app
 else:  # 💻 Local development
-    iface.launch(debug=True)
+    iface.launch(server_name="0.0.0.0", server_port=7860, debug=True)
