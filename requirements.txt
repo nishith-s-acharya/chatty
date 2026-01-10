@@ -1,5 +1,5 @@
 python-dotenv==1.0.1
-gradio==4.39.0
+gradio==5.9.1
 numpy==1.26.4
 soundfile==0.12.1
 deep-translator==1.11.4
