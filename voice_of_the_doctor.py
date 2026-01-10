@@ -28,7 +28,7 @@ def text_to_speech_with_gtts(input_text: str, output_filepath: str = "final.mp3"
 # ElevenLabs TTS (primary)
 # -------------------------------
 def text_to_speech_with_elevenlabs(input_text: str, output_filepath: str = "final.mp3", lang: str = "en"):
-    # Fetch credentials inside the function to ensure latest env vars are used
+    # Fetch credentials inside the function
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     
     # 🚨 Special Handling: Use Google TTS for Kannada (kn) as per user request
@@ -36,10 +36,7 @@ def text_to_speech_with_elevenlabs(input_text: str, output_filepath: str = "fina
         logging.info("🔹 Kannada detected. Using Google TTS (gTTS) instead of ElevenLabs.")
         return text_to_speech_with_gtts(input_text, output_filepath, lang)
 
-    # DEBUGGING: Print all keys starting with ELEVENLABS_VOICE_ID
-    # logging.info(f"DEBUG: Enviroment keys: {[k for k in os.environ.keys() if k.startswith('ELEVENLABS_VOICE_ID')]}")
-    
-    # Check for language-specific voice ID first (e.g., ELEVENLABS_VOICE_ID_ES)
+    # Check for language-specific voice ID
     env_var_name = f"ELEVENLABS_VOICE_ID_{lang.upper()}"
     voice_id = os.environ.get(env_var_name)
     
@@ -54,21 +51,40 @@ def text_to_speech_with_elevenlabs(input_text: str, output_filepath: str = "fina
         return text_to_speech_with_gtts(input_text, output_filepath, lang)
 
     try:
-        from elevenlabs import generate, set_api_key, save
-        set_api_key(elevenlabs_key)
+        import requests
+        
+        # Default voice (Aria) if none specified
+        if not voice_id:
+            voice_id = "21m00Tcm4TlvDq8ikWAM" # Rachel default, or use Aria ID if known
 
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        
+        headers = {
+            "xi-api-key": elevenlabs_key,
+            "Content-Type": "application/json"
+        }
+        
         model = "eleven_multilingual_v2" if lang != "en" else "eleven_turbo_v2"
-        voice = voice_id if voice_id else "Aria"
+        
+        data = {
+            "text": input_text,
+            "model_id": model,
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
 
-        audio = generate(
-            text=input_text,
-            voice=voice,
-            model=model
-        )
-
-        save(audio, output_filepath)
-        logging.info(f"ElevenLabs audio saved at {output_filepath} (voice={voice}, model={model})")
-        return output_filepath
+        response = requests.post(url, json=data, headers=headers)
+        
+        if response.status_code == 200:
+            with open(output_filepath, "wb") as f:
+                f.write(response.content)
+            logging.info(f"ElevenLabs audio saved at {output_filepath} (voice={voice_id}, model={model}) via API")
+            return output_filepath
+        else:
+            logging.error(f"ElevenLabs API Error: {response.status_code} - {response.text}")
+            return text_to_speech_with_gtts(input_text, output_filepath, lang)
 
     except Exception as e:
         logging.error(f"ElevenLabs TTS failed: {e}. Falling back to gTTS.")

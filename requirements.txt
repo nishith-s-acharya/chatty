@@ -1,6 +1,5 @@
 python-dotenv==1.0.1
 gradio==3.50.2
-pydantic>=2.0
 huggingface-hub>=0.25.1
 numpy==1.26.4
 soundfile==0.12.1
@@ -11,5 +10,5 @@ pydub==0.25.1
 assemblyai==0.31.0
 langdetect==1.0.9
 gTTS==2.5.4
-elevenlabs==0.2.27
+pydantic<2.0
 google-generativeai>=0.8.3
