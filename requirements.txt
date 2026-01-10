@@ -11,6 +11,5 @@ pydub==0.25.1
 assemblyai==0.31.0
 langdetect==1.0.9
 gTTS==2.5.4
-elevenlabs==1.50.3
-huggingface-hub>=0.25.1
+elevenlabs==0.2.27
 google-generativeai>=0.8.3
