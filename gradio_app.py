@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 
 import os
 import logging
@@ -112,7 +112,7 @@ def process_inputs(audio_input, image_filepath, progress=gr.Progress()):
         if image_filepath or speech_to_text_output:
             doctor_response = analyze_image_with_query(
                 query=query_text,
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model="gemini-flash-latest",
                 encoded_image=encoded_image
             )
         else:

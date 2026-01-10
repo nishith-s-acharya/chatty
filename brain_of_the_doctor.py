@@ -1,60 +1,57 @@
-# if you dont use pipenv uncomment the following:
-# from dotenv import load_dotenv
-# load_dotenv()
-
-#Step1: Setup GROQ API key
+#Step1: Setup Gemini API key
 import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
 
-GROQ_API_KEY=os.environ.get("GROQ_API_KEY")
+import google.generativeai as genai
 
-#Step2: Convert image to required format
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
+
+#Step2: Convert image to required format (Not strictly needed for Gemini file API but good for base64 local injection)
 import base64
 
-
-#image_path="acne.jpg"
-
 def encode_image(image_path):   
-    image_file=open(image_path, "rb")
+    image_file = open(image_path, "rb")
     return base64.b64encode(image_file.read()).decode('utf-8')
 
 #Step3: Setup Multimodal LLM 
-from groq import Groq
+# model = "gemini-1.5-pro" or "gemini-1.5-flash"
+model_name = "gemini-flash-latest"
 
-query="Is there something wrong with my face?"
-#model = "meta-llama/llama-4-maverick-17b-128e-instruct"
-model="meta-llama/llama-4-scout-17b-16e-instruct"
-#model = "meta-llama/llama-4-scout-17b-16e-instruct"
-#model="llama-3.2-90b-vision-preview" #Deprecated
-
-def analyze_image_with_query(query, model, encoded_image=None):
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-    content = [
-        {
-            "type": "text",
-            "text": query
-        }
-    ]
-
+def analyze_image_with_query(query, model=model_name, encoded_image=None):
+    # For Gemini, we can pass image bytes directly or use PIL
+    # If encoded_image is passed (base64 string), we decode it back to bytes
+    
+    parts = [query]
+    
     if encoded_image:
-        content.append(
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpeg;base64,{encoded_image}",
-                },
+        try:
+            image_bytes = base64.b64decode(encoded_image)
+            image_part = {
+                "mime_type": "image/jpeg", # Assuming JPEG as per typical usage, can be made dynamic
+                "data": image_bytes
             }
-        )
+            parts.append(image_part)
+        except Exception as e:
+            return f"Error decoding image for Gemini: {e}"
 
-    messages = [
-        {
-            "role": "user",
-            "content": content,
-        }
-    ]
-    chat_completion = client.chat.completions.create(
-        messages=messages,
-        model=model
+    generation_config = {
+        "temperature": 1,
+        "top_p": 0.95,
+        "top_k": 64,
+        "max_output_tokens": 8192,
+        "response_mime_type": "text/plain",
+    }
+
+    model_instance = genai.GenerativeModel(
+        model_name=model,
+        generation_config=generation_config,
     )
 
-    return chat_completion.choices[0].message.content
+    chat_session = model_instance.start_chat(
+        history=[]
+    )
+
+    response = chat_session.send_message(parts)
+    return response.text
