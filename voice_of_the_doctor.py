@@ -1,8 +1,7 @@
 import os
 import logging
 from gtts import gTTS
-from elevenlabs import save
-from elevenlabs.client import ElevenLabs
+# Imports handled inside functions for safety
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -55,16 +54,16 @@ def text_to_speech_with_elevenlabs(input_text: str, output_filepath: str = "fina
         return text_to_speech_with_gtts(input_text, output_filepath, lang)
 
     try:
-        client = ElevenLabs(api_key=elevenlabs_key)
+        from elevenlabs import generate, set_api_key, save
+        set_api_key(elevenlabs_key)
 
         model = "eleven_multilingual_v2" if lang != "en" else "eleven_turbo_v2"
         voice = voice_id if voice_id else "Aria"
 
-        audio = client.generate(
+        audio = generate(
             text=input_text,
             voice=voice,
-            model=model,
-            output_format="mp3_22050_32"
+            model=model
         )
 
         save(audio, output_filepath)
