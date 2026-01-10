@@ -1,26 +1,28 @@
-# Use an official Python runtime as a parent image
+# Use python 3.10
 FROM python:3.10-slim
 
-# Set the working directory to /app
-WORKDIR /app
-
-# Install system dependencies
-# ffmpeg is needed for pydub (audio processing)
+# Install system dependencies (ffmpeg for audio)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Create a non-root user (required by HF Spaces for some security policies)
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:$PATH"
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+WORKDIR /app
 
-# Make port 7860 available to the world outside this container
+# Copy requirements first to leverage cache
+COPY --chown=user ./requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# Copy the rest of the application
+COPY --chown=user . /app
+
+# Expose the Gradio port
 EXPOSE 7860
 
-# Define environment variable
-ENV PYTHONUNBUFFERED=1
-
-# Run gradio_app.py when the container launches
+# Command to run the app
 CMD ["python", "gradio_app.py"]
