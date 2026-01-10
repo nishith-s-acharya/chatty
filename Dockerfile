@@ -1,28 +1,34 @@
-# Use python 3.10
-FROM python:3.10-slim
+# Use standard Python 3.10 image (not slim) to ensure all build tools are present
+FROM python:3.10
 
 # Install system dependencies (ffmpeg for audio)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    cmake \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user (required by HF Spaces for some security policies)
+# Set entrypoint to bash to ensure environment is loaded
+SHELL ["/bin/bash", "-c"]
+
+# Create a non-root user
 RUN useradd -m -u 1000 user
+
+# Switch to user
 USER user
-ENV PATH="/home/user/.local/bin:$PATH"
+ENV HOME=/home/user \
+	PATH=/home/user/.local/bin:$PATH
 
-WORKDIR /app
+WORKDIR $HOME/app
 
-# Copy requirements first to leverage cache
+# Copy requirements
 COPY --chown=user ./requirements.txt requirements.txt
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --upgrade -r requirements.txt
 
-# Copy the rest of the application
-COPY --chown=user . /app
+# Copy application
+COPY --chown=user . $HOME/app
 
-# Expose the Gradio port
 EXPOSE 7860
 
-# Command to run the app
 CMD ["python", "gradio_app.py"]
