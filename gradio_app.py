@@ -160,7 +160,7 @@ def process_inputs(audio_input, image_filepath, progress=gr.Progress()):
 iface = gr.Interface(
     fn=process_inputs,
     inputs=[
-        gr.Audio(sources=["microphone"], type="numpy", label="🎤 Patient Voice (Speak here)"),
+        gr.Audio(source="microphone", type="numpy", label="🎤 Patient Voice (Speak here)"),
         gr.Image(type="filepath", label="🩺 Upload Medical Image")
     ],
     outputs=[
