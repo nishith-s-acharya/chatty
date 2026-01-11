@@ -4,7 +4,7 @@ emoji: 👨‍⚕️
 colorFrom: blue
 colorTo: green
 sdk: gradio
-sdk_version: 5.9.1
+sdk_version: 3.50.2
 app_file: gradio_app.py
 pinned: false
 license: mit
@@ -16,6 +16,12 @@ An intelligent medical assistant powered by:
 - **Brain:** Google Gemini Flash
 - **Voice:** ElevenLabs (English/Spanish/French) & Google TTS (Kannada)
 - **Hearing:** AssemblyAI
+
+## System Requirements
+- **FFmpeg**: This project requires FFmpeg to be installed and available in your system path for audio conversion.
+  - **Mac:** `brew install ffmpeg`
+  - **Windows:** Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH.
+  - **Linux:** `sudo apt install ffmpeg`
 
 ## Setup (Locally)
 1. Clone the repo.

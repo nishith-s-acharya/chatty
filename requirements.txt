@@ -4,7 +4,6 @@ huggingface-hub>=0.25.1
 numpy==1.26.4
 soundfile==0.12.1
 deep-translator==1.11.4
-groq==0.15.0
 SpeechRecognition==3.13.0
 pydub==0.25.1
 assemblyai==0.31.0
